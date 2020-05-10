@@ -7,7 +7,8 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('',views.home, name='home'),
     path('upload', views.file_upload, name='file_upload'),
-    path('results',views.result_page,name='result_fetch')
+    path('results',views.result_page,name='result_fetch'),
+    path('datasubmit',views.datasubmit,name='datasubmit'),
 ]
 
 urlpatterns = urlpatterns+ static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)

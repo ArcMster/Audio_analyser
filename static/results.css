@@ -1,0 +1,17 @@
+body{
+    display: flexbox;
+    flex-direction: column;
+    
+}
+
+.inputs{
+    display: relative;
+
+    color: white;
+    text-align: center;
+    position: relative;
+    top: 40%;
+    font-size: xx-large;
+    text-shadow: white;
+    box-shadow:blanchedalmond;
+}

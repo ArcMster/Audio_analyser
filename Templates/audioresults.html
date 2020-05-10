@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+
+
+
+{% load static %}
+<link rel="stylesheet" href="{% static 'results.css' %}" type="text/css">
+<body>
+
+
+
+    <div class="inputs">
+Following are the processed output audio files. 
+<br>
+Kindly review them and submit your response
+<br>
+<br>
+<form action = "datasubmit">
+<audio controls>
+    <source src="{{ audio.search_1.url}}">
+</audio>
+<br>
+<input type="radio" id="match found" name="aud_1match" value="match">
+<label for="match found">Match Found</label><br>
+<input type="radio" id="No Match" name="aud_1match"value="no match">
+<label for="No Match">No Match</label><br>
+<br>
+
+
+<audio controls>
+    <source src="{{ audio.search_2.url}}">
+</audio>
+<br>
+<input type="radio" id="match found" name="aud_2match" value="match">
+<label for="match found">Match Found</label><br>
+<input type="radio" id="No Match" name="aud_2match"value="no match">
+<label for="No Match">No Match</label><br>
+<br>
+<audio controls>
+    <source src="{{ audio.search_3.url}}">
+</audio>
+<br>
+<input type="radio" id="match found" name="aud_3match" value="match">
+<label for="match found">Match Found</label><br>
+<input type="radio" id="No Match" name="aud_3match"value="no match">
+<label for="No Match">No Match</label><br>
+<br>
+<audio controls>
+    <source src="{{ audio.search_4.url}}">
+</audio>
+
+<br>
+<input type="radio" id="match found" name="aud_4match" value="match">
+<label for="match found">Match Found</label><br>
+<input type="radio" id="No Match" name="aud_4match"value="no match">
+<label for="No Match">No Match</label><br>
+<br>
+
+<audio controls>
+    <source src="{{ audio.search_5.url}}">
+</audio>
+
+<br>
+<input type="radio" id="match found" name="aud_5match" value="match">
+<label for="match found">Match Found</label><br>
+<input type="radio" id="No Match" name="aud_5match"value="no match">
+<label for="No Match">No Match</label><br>
+<br>
+<audio controls>
+    <source src="{{ audio.search_6.url}}">
+</audio>
+
+<br>
+<input type="radio" id="match found" name="aud_6match" value="match">
+<label for="match found">Match Found</label><br>
+<input type="radio" id="No Match" name="aud_6match"value="no match">
+<label for="No Match">No Match</label><br>
+<br>
+
+<input type="submit">
+</form>
+    </div>
+
+</body>
+</html>

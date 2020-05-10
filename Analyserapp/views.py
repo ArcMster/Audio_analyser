@@ -2,7 +2,7 @@ from __future__ import print_function
 from django.shortcuts import render
 from django.shortcuts import render
 from django.http import HttpResponse
-from .models import Input_audios, Output_audios
+from .models import Input_audios, Output_audios, Response
 import pandas as pd
 import numpy as np
 import time, datetime
@@ -57,7 +57,7 @@ def file_upload(request):
                     large_audio_file=audioanalyse)
     
     output_files = Output_audios.objects.last()
-    return render(request,'audio_results.html',{'audio': output_files},{'inaudio':obj})
+    return render(request,'audioresults.html',{'audio': output_files,'inaudio':obj})
 '''
     new_file = Output_audios()
     new_file.search_1 = audio_output[0]
@@ -97,13 +97,40 @@ def file_upload(request):
 
 
 def result_page(request):
-    audio_files = Input_audios.objects.all()
+    input_files = Input_audios.objects.all()
+    for i in input_files:
+        obj = i
+        break
 
-    all_audio = []
-    for i in audio_files:
-        all_audio.append(i)
+    output_files = Output_audios.objects.last()
+    return render(request,'audioresults.html',{'audio': output_files,'inaudio':obj})
 
-    return render(request,'results.html',{'audios':all_audio})
+
+def datasubmit(request):
+    aud1_output = request.GET['aud_1match']
+    aud2_output = request.GET['aud_2match']
+    aud3_output = request.GET['aud_3match']
+    aud4_output = request.GET['aud_4match']
+    aud5_output = request.GET['aud_5match']
+    aud6_output = request.GET['aud_6match']
+    myresponse = Response()
+    myresponse.aud1_response = aud1_output
+    myresponse.aud2_response = aud2_output
+    myresponse.aud3_response = aud3_output
+    myresponse.aud4_response = aud4_output
+    myresponse.aud5_response = aud5_output
+    myresponse.aud6_response = aud6_output
+    input_files = Input_audios.objects.all()
+    for i in input_files:
+        obj = i
+        break
+    myresponse.file = obj.audio_analyse
+
+    myresponse.save()
+
+    return render(request,'lastpage.html')
+
+    
 
 
 "================================================"
@@ -500,6 +527,6 @@ def search_function(keyword_file1= 'abc.wav', keyword_file2='def.wav', keyword_f
     return potential_df, file_list
 
 
-search_function(keyword_file1= 'C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Voice_042.wav', keyword_file2='C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Voice 043.wav', keyword_file3 = 'C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Voice 044.wav',
-                    large_audio_file='C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Voice 045.wav')
+#search_function(keyword_file1= 'C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Voice_042.wav', keyword_file2='C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Voice 043.wav', keyword_file3 = 'C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Voice 044.wav',
+                #    large_audio_file='C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Voice 045.wav')
 
