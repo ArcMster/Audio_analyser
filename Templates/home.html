@@ -1,0 +1,17 @@
+
+Please upload the Four audio input files
+<form action="upload" method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="audio1">
+    <br>
+    <input type="file" name="audio2">
+    <br>
+    <input type="file" name="audio3">
+    <br>
+    <input type="file" name="analyse">
+    <br>
+    
+    <input type="submit">
+</form>
+
+click <a href="results">here</a> for fetching the default data
