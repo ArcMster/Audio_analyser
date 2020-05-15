@@ -1,31 +1,48 @@
 body{
-    display: grid;
-    grid-template-rows: 20% 50% 20%;
+    
+    color: white;
+    text-align: center;
+
 }
 
 .heading{
-    color: white;
-    text-align: center;
-    position: relative;
-    top: 40%;
     font-size: xx-large;
-    text-shadow: white;
-    box-shadow:blanchedalmond;
+}
+#all_elements{
+    
+    width: 100%;
+    display: flex;
+   
+    block-size: 100%;
+    
 }
 
-.upload_form{
-    position: relative;
-    top: 10%;
-    color: white;
+
+#search_form{
+    
+    padding-left: 10%;
+    
+    vertical-align: middle;
+    margin-top: 10%;
+    
+    
+
+}
+#search_heading{
+    padding-bottom: 5%;
+    font-size: x-large;
+    
+}
+
+#upload_form{
+    padding-left: 30%;
     text-align: center;
-    font-size:x-large;
-    box-shadow:blanchedalmond;
-}
+    
 
+}
+.form_heading{
+    font-size: x-large;
+}
 .footer{
-    color: white;
-    text-align: center;
     position: relative;
-    top: 70%;
-    box-shadow:blanchedalmond;
 }

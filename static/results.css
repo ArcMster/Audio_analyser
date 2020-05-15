@@ -1,17 +1,54 @@
 body{
-    display: flexbox;
-    flex-direction: column;
+    background-color: black;
+    
     
 }
 
-.inputs{
-    display: relative;
-
+#all_elements {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    
     color: white;
-    text-align: center;
-    position: relative;
-    top: 40%;
-    font-size: xx-large;
-    text-shadow: white;
-    box-shadow:blanchedalmond;
 }
+
+#inputs {
+    
+    width: 100%;
+    text-align: center;
+    align-items: center;
+    vertical-align: middle;
+    
+    
+    
+    
+}
+#outputs {
+    text-align: center;
+    align-items: center;
+    vertical-align: middle;
+    color: white;
+    width: 100%; 
+    border-left: solid;
+    border-color: yellow;
+    padding-left: 5%;
+    
+}
+#out_heading{
+    font-size: x-large; 
+    padding-right: 30%;
+     
+}
+#form{
+    display: flex;
+    
+}
+#secons_row{
+    text-align: center;
+}
+
+#submit{
+    padding-right: 25%;
+}
+
+

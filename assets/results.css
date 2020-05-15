@@ -1,12 +1,12 @@
 body{
     display: flexbox;
     flex-direction: column;
-    background-color: black;
+    font-size: x-large;
     
 }
 
 
-.outputs{
+.inputs{
     display: relative;
 
     color: white;

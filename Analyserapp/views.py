@@ -16,34 +16,62 @@ from pydub.playback import play
 import wave
 import os
 from django.http import HttpResponse
+import librosa.display as ld
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 
 # Create your views here.
 
+#Function to fetch the homepage
 def home(request):
     return render(request,'home.html')
 
+#Function to fetch the audio samples based on keyword (Search bar)
+def search(request):
+    found = False
+    word = request.GET['searchbar']
+    objs = Input_audios.objects.all()
+    for i in objs:
+        if i.keyword == word:
+            inobj = i
+            found = True
+    objout = Output_audios.objects.all()
+    for j in objout:
+        if j.keyword == word:
+            outobj = j
+    if found == True:
+        return render(request,'audioresults.html',{'audio': outobj,'inaudio':inobj})
+    else:
+        return render(request,'home.html',{'input': "Keyword not found"})
 
 
+
+#Function to upload the audio samples and to process them
 def file_upload(request):
     input_file = Input_audios()
-    '''if request.method == 'POST':
-        upload_file = request.FILES['audio1']
-        print(upload_file.name)
-        print(upload_file.size)'''
-
-    #file1 = request.POST['audio1']
+    def_audio = Input_audios.objects.all()
+    word = request.POST['keyword']
+    word = word.lower()
+    
     file1 = request.FILES['audio1']
     file2 = request.FILES['audio2']
     file3 = request.FILES['audio3']
-    file_analyse = request.FILES['analyse']
+    if request.POST['default_audio'] == "Need_default_audio":
+        for i in def_audio:
+            obj = i
+            input_file.audio_analyse = obj.audio_analyse
+            break
+    else:
+
+        file_analyse = request.FILES['analyse']
+        input_file.audio_analyse = file_analyse
     
 
-
+    input_file.keyword = word
     input_file.audio_1 = file1
     input_file.audio_2 = file2
     input_file.audio_3 = file3
-    input_file.audio_analyse = file_analyse
+    
     input_file.save()
     obj = Input_audios.objects.last()
     print("started")
@@ -54,58 +82,37 @@ def file_upload(request):
     print("a")
 
     search_function(keyword_file1= audio1, keyword_file2=audio2, keyword_file3 = audio3,
-                    large_audio_file=audioanalyse)
+                    large_audio_file=audioanalyse, keyword = word)
+    out_file_list = []
+    
+    
+    
     
     output_files = Output_audios.objects.last()
     return render(request,'audioresults.html',{'audio': output_files,'inaudio':obj})
-'''
-    new_file = Output_audios()
-    new_file.search_1 = audio_output[0]
-    print(audio_output[0])
-    new_file.search_2 = audio_output[1]
-    new_file.search_3 = audio_output[2]
-    new_file.search_4 = audio_output[3]
-    new_file.search_5 = audio_output[4]
-    new_file.search_6 = audio_output[5]
-    print("i")
-
-    outfile = Output_audios.objects.last()
-
-    return render(request,'results.html',{'audio':outfile})
-'''
-'''
-    print(new_file.search_2)
-
-    new_file.save()
-
-    all_audio = []
-    audio_files = Input_audios.objects.all()
-
-
-    for i in audio_files:
-        all_audio.append(i)
-
-    return render(request,'results.html',{'audios':all_audio})
-'''
-
-
-    
-
-    
-    
 
 
 
+
+
+#Function to fetch the result with the default audio sample
 def result_page(request):
     input_files = Input_audios.objects.all()
     for i in input_files:
         obj = i
         break
+    new_row = Input_audios()
+    new_row = obj
+    new_row.save()
 
-    output_files = Output_audios.objects.last()
-    return render(request,'audioresults.html',{'audio': output_files,'inaudio':obj})
+    output_files = Output_audios.objects.all()
+    for j in output_files:
+        outobj = j
+        break
+    return render(request,'audioresults.html',{'audio': outobj,'inaudio':obj})
 
 
+#Funciton to submit the review data submitted in audioresult page
 def datasubmit(request):
     aud1_output = request.GET['aud_1match']
     aud2_output = request.GET['aud_2match']
@@ -120,16 +127,32 @@ def datasubmit(request):
     myresponse.aud4_response = aud4_output
     myresponse.aud5_response = aud5_output
     myresponse.aud6_response = aud6_output
-    input_files = Input_audios.objects.all()
-    for i in input_files:
-        obj = i
-        break
+    
+    obj = Input_audios.objects.last()
     myresponse.file = obj.audio_analyse
+    myresponse.keyword = obj.keyword
 
     myresponse.save()
 
     return render(request,'lastpage.html')
 
+def visualisation(fname):
+    
+    #y,sr = librosa.load(librosa.util.example_audio_file(),duration = 10)
+    #y,sr = librosa.load('C:\\Users\\PSSRE\\Downloads\\Voice_042.wav',duration = 2)
+    y,sr = librosa.load(fname)
+    plt.figure(figsize=(12,6))
+    #plt.figure()
+    #plt.subplot(2,1,1)
+    ld.waveplot(y,sr=sr)
+    #plt.title('Monophonic')
+    file_name = fname + ".jpg"
+    plt.savefig(file_name)
+    current_time = datetime.datetime.now()
+    timestr = str(current_time.year) + "_" + str(current_time.month) + "_" + str(current_time.day) + "_" + str(current_time.hour) + "_" + str(current_time.minute) + "_" + str(current_time.second)
+    #output.search_1 = "media/search_1" + timestr
+    saved_file = "media/" + fname[len(fname)-26:] + ".jpg"
+    return saved_file
     
 
 
@@ -432,8 +455,11 @@ def trim_resample_average(sample_1_file='abc.wav', sample_2_file='def.wav', samp
 
 
 
-def write_audio_output(potential_df = pd.DataFrame(), target_length = 10.0, test_audio=[], test_sr=10.0):
+def write_audio_output(keyword, potential_df = pd.DataFrame(), target_length = 10.0, test_audio=[], test_sr=10.0):
+    word = keyword
     output = Output_audios()
+    out_file_list = []
+    output.keyword = word
     
     # convert the first search result into audio
     start_point = potential_df['sample_loc'].iloc[0]
@@ -442,8 +468,9 @@ def write_audio_output(potential_df = pd.DataFrame(), target_length = 10.0, test
 
     current_time = datetime.datetime.now()
     timestr = str(current_time.year) + "_" + str(current_time.month) + "_" + str(current_time.day) + "_" + str(current_time.hour) + "_" + str(current_time.minute) + "_" + str(current_time.second)
-    timesave = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_1" + timestr
-    librosa.output.write_wav(timesave, audio_subset, sr=test_sr)
+    timesave1 = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_1" + timestr
+    librosa.output.write_wav(timesave1, audio_subset, sr=test_sr)
+    out_file_list.append(timesave1)
     
     output.search_1 = "media/search_1" + timestr
     
@@ -456,48 +483,66 @@ def write_audio_output(potential_df = pd.DataFrame(), target_length = 10.0, test
     start_point = potential_df['sample_loc'].iloc[1]
     end_point = start_point + target_length
     audio_subset = test_audio[start_point: end_point]
-    timesave = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_2" + timestr
-    librosa.output.write_wav(timesave, audio_subset, sr=test_sr)
+    timesave2 = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_2" + timestr
+    librosa.output.write_wav(timesave2, audio_subset, sr=test_sr)
     output.search_2 = "media/search_2" + timestr
+    out_file_list.append(timesave2)
     
     # convert the third search result into audio
     start_point = potential_df['sample_loc'].iloc[2]
     end_point = start_point + target_length
     audio_subset = test_audio[start_point: end_point]
-    timesave = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_3" + timestr
-    librosa.output.write_wav(timesave, audio_subset, sr=test_sr)
+    timesave3 = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_3" + timestr
+    librosa.output.write_wav(timesave3, audio_subset, sr=test_sr)
     output.search_3 = "media/search_3" + timestr
+    out_file_list.append(timesave3)
     
     # convert the fourth search result into audio
     start_point = potential_df['sample_loc'].iloc[3]
     end_point = start_point + target_length
     audio_subset = test_audio[start_point: end_point]
-    timesave = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_4" + timestr
-    librosa.output.write_wav(timesave, audio_subset, sr=test_sr)
+    timesave4 = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_4" + timestr
+    librosa.output.write_wav(timesave4, audio_subset, sr=test_sr)
     output.search_4 = "media/search_4" + timestr
+    out_file_list.append(timesave4)
     
     # convert the fifth search result into audio
     start_point = potential_df['sample_loc'].iloc[4]
     end_point = start_point + target_length
     audio_subset = test_audio[start_point: end_point]
-    timesave = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_5" + timestr
-    librosa.output.write_wav(timesave, audio_subset, sr=test_sr)
+    timesave5 = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_5" + timestr
+    librosa.output.write_wav(timesave5, audio_subset, sr=test_sr)
     output.search_5 = "media/search_5" + timestr
+    out_file_list.append(timesave5)
     
     # convert the fifth search result into audio
     start_point = potential_df['sample_loc'].iloc[5]
     end_point = start_point + target_length
     audio_subset = test_audio[start_point: end_point]
-    timesave = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_6" + timestr
-    librosa.output.write_wav(timesave, audio_subset, sr=test_sr)
+    timesave6 = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\search_6" + timestr
+    librosa.output.write_wav(timesave6, audio_subset, sr=test_sr)
     output.search_6 = "media/search_6" + timestr
+    out_file_list.append(timesave6)
+    
+
+    visual_files = []
+    for i in out_file_list:
+        visual_files.append(visualisation(i))
+    output.visual_1 = visual_files[0]
+    output.visual_2 = visual_files[1]
+    output.visual_3 = visual_files[2]
+    output.visual_4 = visual_files[3]
+    output.visual_5 = visual_files[4]
+    output.visual_6 = visual_files[5]
+    
     output.save()
+    return timesave1,timesave2,timesave3,timesave4,timesave5,timesave6
     
 
 
-def search_function(keyword_file1= 'abc.wav', keyword_file2='def.wav', keyword_file3 = 'ghi.wav',
+def search_function(keyword, keyword_file1= 'abc.wav', keyword_file2='def.wav', keyword_file3 = 'ghi.wav',
                     large_audio_file='xyz.wav'):
-    
+    n_keyword = keyword 
     
     target_audio, target_sr = trim_resample_average(sample_1_file=keyword_file1,
                                                     sample_2_file=keyword_file2, sample_3_file=keyword_file3)
@@ -521,7 +566,7 @@ def search_function(keyword_file1= 'abc.wav', keyword_file2='def.wav', keyword_f
     potential_df = evaluate_comparison(result_df = result, rmse_threshold = 7, max_error_threshold = 0.70)
     
     # store the output in audio form
-    file_list = write_audio_output(potential_df = potential_df, target_length = len(target_audio),
+    file_list = write_audio_output(keyword = n_keyword, potential_df = potential_df, target_length = len(target_audio),
                        test_audio=test_audio, test_sr=int(test_sr))
     
     return potential_df, file_list
