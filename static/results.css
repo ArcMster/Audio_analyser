@@ -1,5 +1,6 @@
 body{
     background-color: black;
+    font-family: Arial, Helvetica, sans-serif;
     
     
 }
@@ -20,8 +21,10 @@ body{
     vertical-align: middle;
     
     
-    
-    
+}
+
+.param{
+    font-size: large;
 }
 #outputs {
     text-align: center;
@@ -31,24 +34,22 @@ body{
     width: 100%; 
     border-left: solid;
     border-color: yellow;
-    padding-left: 5%;
+    
     
 }
 #out_heading{
     font-size: x-large; 
-    padding-right: 30%;
+    
      
 }
-#form{
-    display: flex;
-    
-}
+
 #secons_row{
     text-align: center;
 }
 
-#submit{
-    padding-right: 25%;
-}
 
+
+input[type = submit]{
+    border-radius: 5px;
+}
 

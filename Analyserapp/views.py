@@ -2,7 +2,7 @@ from __future__ import print_function
 from django.shortcuts import render
 from django.shortcuts import render
 from django.http import HttpResponse
-from .models import Input_audios, Output_audios, Response
+from .models import Input_audios, Output_audios, Response, Plotter, Searchkeys
 import pandas as pd
 import numpy as np
 import time, datetime
@@ -18,9 +18,48 @@ import os
 from django.http import HttpResponse
 import librosa.display as ld
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import itertools, ast
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import authentication, permissions
+
 
 
 # Create your views here.
+
+def jsaudio(request):
+    return render(request,'jsresults.html')
+
+def chart(request):
+    return render(request,'chart.html')
+
+class Chartdata(APIView):
+   
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, format=None):
+        dataobj = Plotter.objects.all()
+        objs = []
+        for i in dataobj:
+            objs.append(i)
+        window = []
+        runtime = []
+        objs.sort(key=lambda x: x.window_size)
+        for i in objs:
+            window.append(i.window_size)
+            runtime.append(i.runtime)
+
+        
+        labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange']
+        data = {
+        "window_size": window,
+        "runtime": runtime
+    }
+        #usernames = [user.username for user in User.objects.all()]
+        return Response(data)
+
 
 #Function to fetch the homepage
 def home(request):
@@ -28,6 +67,8 @@ def home(request):
 
 #Function to fetch the audio samples based on keyword (Search bar)
 def search(request):
+    print("search invoked")
+    searchobj = Searchkeys()
     found = False
     word = request.GET['searchbar']
     objs = Input_audios.objects.all()
@@ -40,9 +81,12 @@ def search(request):
         if j.keyword == word:
             outobj = j
     if found == True:
-        return render(request,'audioresults.html',{'audio': outobj,'inaudio':inobj})
+        searchobj.searchkey = word
+        searchobj.save()
+        return render(request,'jsaudioresults.html',{'audio': outobj,'inaudio':inobj})
     else:
         return render(request,'home.html',{'input': "Keyword not found"})
+
 
 
 
@@ -54,9 +98,27 @@ def file_upload(request):
     word = word.lower()
     
     file1 = request.FILES['audio1']
-    file2 = request.FILES['audio2']
-    file3 = request.FILES['audio3']
-    if request.POST['default_audio'] == "Need_default_audio":
+    try:
+        file2 = request.FILES['audio2']
+    except:
+        file2 = request.FILES['audio1']
+        pass
+    
+    try:
+        file3 = request.FILES['audio3']
+    except:
+        file3 = request.FILES['audio1']
+        
+    
+    malspec = float(request.POST['malspec'])
+    chroma = float(request.POST['chroma'])
+    zerocross = float(request.POST['zerocross'])
+    sdf = float(request.POST['sdf'])
+    print(request.POST['default_audio'])
+    window_size = int(request.POST['window_size'])
+    
+
+    if str(request.POST['default_audio']) == "Need_default_audio":
         for i in def_audio:
             obj = i
             input_file.audio_analyse = obj.audio_analyse
@@ -65,33 +127,123 @@ def file_upload(request):
 
         file_analyse = request.FILES['analyse']
         input_file.audio_analyse = file_analyse
+       
     
 
     input_file.keyword = word
     input_file.audio_1 = file1
     input_file.audio_2 = file2
     input_file.audio_3 = file3
-    
+    input_file.chroma = chroma
+    input_file.malspec = malspec
+    input_file.zerocross = zerocross
+    input_file.silence_decible_floor = sdf
+    input_file.window_size = window_size
+
     input_file.save()
+
+    plotobj = Plotter()
+    plotobj.keyword = word
+    plotobj.window_size = window_size
+    plotobj.runtime = 0
+    plotobj.save()
+
     obj = Input_audios.objects.last()
-    print("started")
+    
     audio1 = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\" + str(obj.audio_1)[5:]
     audio2 = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\" + str(obj.audio_2)[5:]
     audio3 = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\" + str(obj.audio_3)[5:]
     audioanalyse = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\" + str(obj.audio_analyse)[5:]
-    print("a")
+    print('clicked')
+    search_function(malspec, chroma, zerocross, sdf, keyword = word, keyword_file1= audio1, keyword_file2=audio2, keyword_file3 = audio3,
+                    large_audio_file=audioanalyse)
 
-    search_function(keyword_file1= audio1, keyword_file2=audio2, keyword_file3 = audio3,
-                    large_audio_file=audioanalyse, keyword = word)
-    out_file_list = []
+    
+    
+    "=========="
+    
+    
+    loc = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\"
+    filestr1 = obj.audio_1
+    filestr1 = str(filestr1)
+    filestr2 = obj.audio_2
+    filestr2 = str(filestr2)
+    filestr3 = obj.audio_3
+    filestr3 = str(filestr3)
+    filestr4 = obj.audio_analyse
+    filestr4 = str(filestr4)
+    
+    aud1_file = loc + filestr1[6:]
+    print(loc + filestr1)
+    obj.visual_1 = visualisation(aud1_file,1)
+    
+    aud2_file = loc + filestr2[6:]
+    obj.visual_2 = visualisation(aud2_file,1)
+    aud3_file = loc + filestr3[6:]
+    obj.visual_3 = visualisation(aud3_file,1)
+    aud4_file = loc + filestr4[6:]
+    obj.visual_4 = visualisation(aud4_file,1)
+    
+    obj.save()
+    
+    "==========="
     
     
     
     
     output_files = Output_audios.objects.last()
-    return render(request,'audioresults.html',{'audio': output_files,'inaudio':obj})
+    return render(request,'jsresults.html',{'audio': output_files,'inaudio':obj})
 
 
+#funtion to plot graphs based on window size and runtime
+
+def plotter(request):
+
+    plotobj = Plotter.objects.all()
+    plotobj1 = []
+    for i in plotobj:
+        plotobj1.append(i)
+    plotobj1.sort(key=lambda x: x.window_size)
+    windowlist = []
+    runtimelist = []
+    data = {'Keyword': [], 'Window_size': [], 'Runtime': []}
+    for i in plotobj1:
+        data['Keyword'].append(i.keyword)
+        data['Window_size'].append(i.window_size)
+        data['Runtime'].append(i.runtime)
+    
+    dataframe = pd.DataFrame(data, columns = ['Window_size','Runtime'])
+    dataframe.plot(x = 'Window_size', y = 'Runtime', kind  = 'line')
+    plt.savefig('C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\static\\graph1.jpg')
+
+    return render(request,'chart.html',{'plotobj':plotobj})
+
+
+    '''
+    in_obj = Input_audios.objects.all()
+    out_obj = Output_audios.objects.all()
+    windowlist = []
+    runtimelist = []
+    sample = []
+    data = {'Window_size': [], 'Runtime': []}
+    for i in in_obj:
+        data['Window_size'].append(i.window_size)
+    for i in out_obj:
+        data['Runtime'].append(i.runtime)
+    windowlist = data['Window_size']
+    runtimelist = data['Runtime']
+    l = len(windowlist)
+    for i in range(0,l):
+        sample.append(i)
+
+    
+    dataframe = pd.DataFrame(data, columns = ['Window_size','Runtime'])
+    dataframe.plot(x = 'Window_size', y = 'Runtime', kind  = 'scatter')
+    plt.savefig('C:\\Users\\PSSRE\\Downloads\\graph.jpg')
+
+    return render(request,'datapage.html',{'data': data, 'windowlist': windowlist, 'runtimelist': runtimelist})
+    '''
+    
 
 
 
@@ -109,7 +261,7 @@ def result_page(request):
     for j in output_files:
         outobj = j
         break
-    return render(request,'audioresults.html',{'audio': outobj,'inaudio':obj})
+    return render(request,'jsdefresults.html',{'audio': outobj,'inaudio':obj})
 
 
 #Funciton to submit the review data submitted in audioresult page
@@ -136,8 +288,8 @@ def datasubmit(request):
 
     return render(request,'lastpage.html')
 
-def visualisation(fname):
-    
+def visualisation(fname,n):
+    print(fname)
     #y,sr = librosa.load(librosa.util.example_audio_file(),duration = 10)
     #y,sr = librosa.load('C:\\Users\\PSSRE\\Downloads\\Voice_042.wav',duration = 2)
     y,sr = librosa.load(fname)
@@ -151,10 +303,296 @@ def visualisation(fname):
     current_time = datetime.datetime.now()
     timestr = str(current_time.year) + "_" + str(current_time.month) + "_" + str(current_time.day) + "_" + str(current_time.hour) + "_" + str(current_time.minute) + "_" + str(current_time.second)
     #output.search_1 = "media/search_1" + timestr
-    saved_file = "media/" + fname[len(fname)-26:] + ".jpg"
+    if n==2:
+        f1 = fname.split('media\media\\')
+        f2 = f1[1]
+        #saved_file = 'media/' + fname[len(fname)-21:] + ".jpg"
+        saved_file = 'media/' + f2 + ".jpg"
+        #saved_file = "media/" + fname[len(fname)-26:] + ".jpg"
+    else:
+        f1 = fname.split('media\media\\')
+        f2 = f1[1]
+        #saved_file = 'media/' + fname[len(fname)-21:] + ".jpg"
+        saved_file = 'media/' + f2 + ".jpg"
     return saved_file
     
 
+"********************plot***************************"
+
+class Resultplot1(APIView):
+    """
+    View to list all users in the system.
+
+    * Requires token authentication.
+    * Only admin users are able to access this view.
+    """
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, format=None):
+        """
+        Return a list of all users.
+        """
+        audobj = Input_audios.objects.last()
+        outobj = Output_audios.objects.last()
+        rmse = outobj.rmse
+        print('rmse :',rmse)
+        aud1 = str(audobj.audio_1)
+        audb = str(audobj.audio_analyse)
+        search1 = str(outobj.search_1)
+        search2 = str(outobj.search_2)
+        search3 = str(outobj.search_3)
+        itemlist = []
+        audplots = []
+        columnplots = []
+        itemlist.append(aud1)
+        itemlist.append(audb)
+        itemlist.append(search1)
+        itemlist.append(search2)
+        itemlist.append(search3)
+        for i in itemlist:
+            fname = i.split('media/')
+            fname = fname[1]
+            fname = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\" + fname
+            audioplot,sr = librosa.load(fname,sr=15000) 
+            
+            columns = []
+            count = 0
+            for i in range(0,len(audioplot)):
+                columns.append(count)
+                count += 1/sr
+                count = round(count,8)
+            audplots.append(audioplot)
+            columnplots.append(columns)
+        
+        rmse = outobj.rmse
+        audlen = len(audplots[1])
+        rmse = ast.literal_eval(rmse)
+        rmse_len = audlen//len(rmse)
+        new_list = new_rmse_list(rmse_list = rmse, repeat_times = rmse_len)
+
+            
+        data = {
+            'keyaud' : audplots[0],
+            'keysr' : columnplots[0],
+            'bigaud' : audplots[1],
+            'bigsr' : columnplots[1],
+            'search1aud' : audplots[2],
+            'search1sr' : columnplots[2],
+            'search2aud' : audplots[3],
+            'search2sr' : columnplots[3],
+            'search3aud' : audplots[4],
+            'search3sr' : columnplots[4],
+            'rmse':new_list
+                
+        
+        
+        }
+        
+        return Response(data)
+
+
+#function to fetch the searched keyword
+
+class Searchplot(APIView):
+    """
+    View to list all users in the system.
+
+    * Requires token authentication.
+    * Only admin users are able to access this view.
+    """
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, format=None):
+        """
+        Return a list of all users.
+        """
+        keyword = Searchkeys.objects.last()
+        print('keyword: ',keyword.searchkey)
+        inall = Input_audios.objects.all()
+        outall = Output_audios.objects.all()
+        for i in inall:
+            if i.keyword == keyword.searchkey.lower():
+                audobj = i
+                break
+        for i in outall:
+            if i.keyword == keyword.searchkey.lower():
+                outobj = i
+                break
+            
+
+        #audobj = Input_audios.objects.last()
+        #outobj = Output_audios.objects.last()
+        aud1 = str(audobj.audio_1)
+        audb = str(audobj.audio_analyse)
+        search1 = str(outobj.search_1)
+        search2 = str(outobj.search_2)
+        search3 = str(outobj.search_3)
+
+        itemlist = []
+        audplots = []
+        columnplots = []
+        itemlist.append(aud1)
+        itemlist.append(audb)
+        itemlist.append(search1)
+        itemlist.append(search2)
+        itemlist.append(search3)
+        for i in itemlist:
+            fname = i.split('media/')
+            fname = fname[1]
+            fname = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\" + fname
+            audioplot,sr = librosa.load(fname,sr=15000) 
+            
+            columns = []
+            count = 0
+            for i in range(0,len(audioplot)):
+                columns.append(count)
+                count += 1/sr
+                count = round(count,8)
+            audplots.append(audioplot)
+            columnplots.append(columns)
+        rmse = outobj.rmse
+        audlen = len(audplots[1])
+        rmse = ast.literal_eval(rmse)
+        rmse_len = audlen//len(rmse)
+        new_list = new_rmse_list(rmse_list = rmse, repeat_times = rmse_len)
+
+            
+        data = {
+            'keyaud' : audplots[0],
+            'keysr' : columnplots[0],
+            'bigaud' : audplots[1],
+            'bigsr' : columnplots[1],
+            'search1aud' : audplots[2],
+            'search1sr' : columnplots[2],
+            'search2aud' : audplots[3],
+            'search2sr' : columnplots[3],
+            'search3aud' : audplots[4],
+            'search3sr' : columnplots[4],
+            'rmse': new_list
+                
+        
+        
+        }
+        
+        return Response(data)
+
+
+#function for default results
+
+class Defresults(APIView):
+    """
+    View to list all users in the system.
+
+    * Requires token authentication.
+    * Only admin users are able to access this view.
+    """
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, format=None):
+        """
+        Return a list of all users.
+        """
+        inall = Input_audios.objects.all()
+        outall = Output_audios.objects.all()
+        for i in inall:
+            audobj = i
+            break
+        for i in outall:
+            outobj = i
+        #audobj = Input_audios.objects.last()
+        #outobj = Output_audios.objects.last()
+        aud1 = str(audobj.audio_1)
+        audb = str(audobj.audio_analyse)
+        rmse = outobj.rmse
+        
+        search1 = str(outobj.search_1)
+        search2 = str(outobj.search_2)
+        search3 = str(outobj.search_3)
+        itemlist = []
+        audplots = []
+        columnplots = []
+        itemlist.append(aud1)
+        itemlist.append(audb)
+        itemlist.append(search1)
+        itemlist.append(search2)
+        itemlist.append(search3)
+        for i in itemlist:
+            fname = i.split('media/')
+            fname = fname[1]
+            fname = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\" + fname
+            audioplot,sr = librosa.load(fname,sr=5000) 
+            
+            
+            columns = []
+            count = 0
+            for i in range(0,len(audioplot)):
+                columns.append(count)
+                count += 1/sr
+                count = round(count,8)
+            audplots.append(audioplot)
+            columnplots.append(columns)
+        
+        audlen = len(audplots[1])
+        rmse = ast.literal_eval(rmse)
+        rmse_len = audlen//len(rmse)
+        
+
+        
+        new_list = new_rmse_list(rmse_list = rmse, repeat_times = rmse_len)
+        plt.figure(figsize=(17,5))
+        plt.title('RMSE Graph')
+        plt.plot(new_list, color='darkgoldenrod')
+        plt.savefig('E:\\Freelance\\rmse.jpg')
+        
+
+
+
+            
+        data = {
+            'keyaud' : audplots[0],
+            'keysr' : columnplots[0],
+            'bigaud' : audplots[1],
+            'bigsr' : columnplots[1],
+            'search1aud' : audplots[2],
+            'search1sr' : columnplots[2],
+            'search2aud' : audplots[3],
+            'search2sr' : columnplots[3],
+            'search3aud' : audplots[4],
+            'search3sr' : columnplots[4],
+            'rmse': new_list
+                
+        
+        
+        }
+        
+        return Response(data)
+
+
+def new_rmse_list(rmse_list = [], repeat_times = 56):
+    
+    # declaring magnitude of repetition 
+    K = repeat_times
+    
+    # using itertools.chain.from_iterable()  
+    # + itertools.repeat() repeat elements K times 
+    new_list = list(itertools.chain.from_iterable(itertools.repeat(i, K) for i in rmse_list)) 
+        
+    return new_list
+
+
+
+
+
+
+
+
+
+
+
+"********************plot************************"
 
 "================================================"
 
@@ -288,13 +726,16 @@ def compare_features(test_audio = [], target_audio = [], feature_name='melspec',
     start_time_seconds = time.time()
     
     window_size = len(target_audio)
+    obj = Input_audios.objects.last()
+    wsize = obj.window_size
     rmse_holder = []
     max_error_holder = []
     sample_holder = []
     # get features for the target audio
     feature_target = get_features(sound_window = target_audio, feature_name= feature_name)
     
-    for i in range(0, len(test_audio), window_size):
+    #for i in range(0, len(test_audio), window_size):
+    for i in range(0, len(test_audio), wsize):
         
         test_set = test_audio[i:i+window_size]
         
@@ -460,6 +901,18 @@ def write_audio_output(keyword, potential_df = pd.DataFrame(), target_length = 1
     output = Output_audios()
     out_file_list = []
     output.keyword = word
+    rmseval = list(potential_df.sort_index()['rmse'])
+    '''
+    rmse_list = list(potential_df.sort_index()['rmse'])
+    print(rmse_list)
+    plt.figure(figsize=(17,5))
+    plt.title('RMSE Graph')
+    plt.plot(rmse_list, color='darkgoldenrod')
+    plt.savefig('E:\\Freelance\\rmse.jpg')
+
+    rmse_list_expanded = new_rmse_list(rmse_list = rmse_list, repeat_times = 56)
+    '''
+    output.rmse = rmseval
     
     # convert the first search result into audio
     start_point = potential_df['sample_loc'].iloc[0]
@@ -527,37 +980,38 @@ def write_audio_output(keyword, potential_df = pd.DataFrame(), target_length = 1
 
     visual_files = []
     for i in out_file_list:
-        visual_files.append(visualisation(i))
+        visual_files.append(visualisation(i,2))
     output.visual_1 = visual_files[0]
     output.visual_2 = visual_files[1]
     output.visual_3 = visual_files[2]
     output.visual_4 = visual_files[3]
     output.visual_5 = visual_files[4]
     output.visual_6 = visual_files[5]
+    output.runtime = 0
     
     output.save()
     return timesave1,timesave2,timesave3,timesave4,timesave5,timesave6
     
 
 
-def search_function(keyword, keyword_file1= 'abc.wav', keyword_file2='def.wav', keyword_file3 = 'ghi.wav',
+def search_function(malspec, chroma, zerocross, sdf, keyword, keyword_file1= 'abc.wav', keyword_file2='def.wav', keyword_file3 = 'ghi.wav',
                     large_audio_file='xyz.wav'):
     n_keyword = keyword 
-    
+    start_time_seconds = time.time()
     target_audio, target_sr = trim_resample_average(sample_1_file=keyword_file1,
                                                     sample_2_file=keyword_file2, sample_3_file=keyword_file3)
     
     
     target_audio, target_sr = librosa.load(keyword_file1)
     
-    target_audio, index = librosa.effects.trim(target_audio, top_db=40)
+    target_audio, index = librosa.effects.trim(target_audio, top_db=sdf)
     
     test_filename = large_audio_file
     
     test_audio, test_sr = librosa.load(test_filename, sr= target_sr)
     
-    result = cost_function(featureList=['melspec', 'chroma', 'zerocross'],
-                       coefficientValues= [0., 1.2, 0.0], 
+    result = cost_function(featureList=['malspec', 'chroma', 'zerocross'],
+                       coefficientValues= [malspec, chroma , zerocross], 
                        target_audio = target_audio,
                         test_audio = test_audio,
 #                       test_audio=test_audio[int(test_sr*2):-int(test_sr*2)],
@@ -565,9 +1019,28 @@ def search_function(keyword, keyword_file1= 'abc.wav', keyword_file2='def.wav', 
     
     potential_df = evaluate_comparison(result_df = result, rmse_threshold = 7, max_error_threshold = 0.70)
     
+    
+    
     # store the output in audio form
     file_list = write_audio_output(keyword = n_keyword, potential_df = potential_df, target_length = len(target_audio),
                        test_audio=test_audio, test_sr=int(test_sr))
+
+    #calculating runtime of whole process
+    stop_time_seconds = time.time()
+    runtime = round((stop_time_seconds - start_time_seconds),2)
+    obj = Output_audios.objects.last()
+    obj.runtime = runtime
+    obj.save()
+
+    plotobj = Plotter.objects.last()
+    plotobj.runtime = runtime
+    plotobj.save()
+
+   
+
+
+    
+
     
     return potential_df, file_list
 

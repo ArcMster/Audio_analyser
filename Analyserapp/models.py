@@ -9,6 +9,16 @@ class Input_audios(models.Model):
     audio_2 = models.FileField(upload_to='media')
     audio_3 = models.FileField(upload_to='media')
     audio_analyse = models.FileField(upload_to='media')
+    visual_1 = models.FileField(upload_to='media')
+    visual_2 = models.FileField(upload_to='media')
+    visual_3 = models.FileField(upload_to='media')
+    visual_4 = models.FileField(upload_to='media')
+    malspec = models.FloatField()
+    chroma = models.FloatField()
+    zerocross = models.FloatField()
+    silence_decible_floor = models.FloatField()
+    window_size = models.IntegerField()
+
 
 class Output_audios(models.Model):
     keyword = models.TextField(max_length= 20)
@@ -24,6 +34,8 @@ class Output_audios(models.Model):
     visual_4 = models.FileField(upload_to='media')
     visual_5 = models.FileField(upload_to='media')
     visual_6 = models.FileField(upload_to='media')
+    runtime = models.IntegerField()
+    rmse = models.TextField()
     
 
 class Response(models.Model):
@@ -35,5 +47,14 @@ class Response(models.Model):
     aud4_response = models.TextField(max_length=20)
     aud5_response = models.TextField(max_length=20)
     aud6_response = models.TextField(max_length=20)
+
+class Plotter(models.Model):
+    keyword = models.TextField(max_length=20)
+    window_size = models.IntegerField()
+    runtime = models.IntegerField()
+
+class Searchkeys(models.Model):
+    searchkey = models.TextField(max_length=20)
+
 
 
