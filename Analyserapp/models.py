@@ -36,6 +36,9 @@ class Output_audios(models.Model):
     visual_6 = models.FileField(upload_to='media')
     runtime = models.IntegerField()
     rmse = models.TextField()
+    start_time = models.IntegerField()
+    end_time = models.IntegerField()
+    test_audio = models.TextField()
     
 
 class Response(models.Model):

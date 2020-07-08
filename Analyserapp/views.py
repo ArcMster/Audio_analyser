@@ -370,6 +370,24 @@ class Resultplot1(APIView):
         rmse = ast.literal_eval(rmse)
         rmse_len = audlen//len(rmse)
         new_list = new_rmse_list(rmse_list = rmse, repeat_times = rmse_len)
+        lentime = []
+        start_time = outobj.start_time
+        end_time = outobj.end_time
+        test_audio = outobj.test_audio
+        test_audio = ast.literal_eval(test_audio)
+        
+
+        start_point = float(start_time * audlen/len(test_audio))
+        
+
+        end_point = float(end_time * audlen/len(test_audio))
+        
+        for i in range(0,audlen):
+            
+            if i> start_point and i<end_point:
+                lentime.append(1)
+            else:
+                lentime.append(0)
 
             
         data = {
@@ -383,7 +401,8 @@ class Resultplot1(APIView):
             'search2sr' : columnplots[3],
             'search3aud' : audplots[4],
             'search3sr' : columnplots[4],
-            'rmse':new_list
+            'rmse':new_list,
+            'lentime': lentime
                 
         
         
@@ -457,6 +476,24 @@ class Searchplot(APIView):
         rmse = ast.literal_eval(rmse)
         rmse_len = audlen//len(rmse)
         new_list = new_rmse_list(rmse_list = rmse, repeat_times = rmse_len)
+        lentime = []
+        start_time = outobj.start_time
+        end_time = outobj.end_time
+        test_audio = outobj.test_audio
+        test_audio = ast.literal_eval(test_audio)
+        
+
+        start_point = float(start_time * audlen/len(test_audio))
+        
+
+        end_point = float(end_time * audlen/len(test_audio))
+        
+        for i in range(0,audlen):
+            
+            if i> start_point and i<end_point:
+                lentime.append(1)
+            else:
+                lentime.append(0)
 
             
         data = {
@@ -470,7 +507,8 @@ class Searchplot(APIView):
             'search2sr' : columnplots[3],
             'search3aud' : audplots[4],
             'search3sr' : columnplots[4],
-            'rmse': new_list
+            'rmse': new_list,
+            'lentime': lentime
                 
         
         
@@ -507,6 +545,14 @@ class Defresults(APIView):
         aud1 = str(audobj.audio_1)
         audb = str(audobj.audio_analyse)
         rmse = outobj.rmse
+        start_time = outobj.start_time
+        end_time = outobj.end_time
+        test_audio = outobj.test_audio
+        test_audio = ast.literal_eval(test_audio)
+
+        print('length of test audio: ', len(test_audio))
+        #start_time = 5000
+        #end_time = 7000
         
         search1 = str(outobj.search_1)
         search2 = str(outobj.search_2)
@@ -523,11 +569,13 @@ class Defresults(APIView):
             fname = i.split('media/')
             fname = fname[1]
             fname = "C:\\Users\\PSSRE\\Djangoproject\\Freelance\\Audio_project\\Audio_analyser\\media\\media\\" + fname
-            audioplot,sr = librosa.load(fname,sr=5000) 
+            audioplot,sr = librosa.load(fname, sr = 5000) 
             
             
             columns = []
+            
             count = 0
+            
             for i in range(0,len(audioplot)):
                 columns.append(count)
                 count += 1/sr
@@ -539,18 +587,55 @@ class Defresults(APIView):
         rmse = ast.literal_eval(rmse)
         rmse_len = audlen//len(rmse)
         
+        lentime = []
+        start_time = outobj.start_time
+        end_time = outobj.end_time
+        test_audio = outobj.test_audio
+        test_audio = ast.literal_eval(test_audio)
+        
+
+        start_point = float(start_time * audlen/len(test_audio))
+        
+
+        end_point = float(end_time * audlen/len(test_audio))
+        
+        for i in range(0,audlen):
+            
+            if i> start_point and i<end_point:
+                lentime.append(audplots[1][i])
+                
+                audplots[1][i]=0
+                
+            else:
+                lentime.append(0)
+        
+            
+        
+
+        
 
         
         new_list = new_rmse_list(rmse_list = rmse, repeat_times = rmse_len)
-        plt.figure(figsize=(17,5))
-        plt.title('RMSE Graph')
-        plt.plot(new_list, color='darkgoldenrod')
-        plt.savefig('E:\\Freelance\\rmse.jpg')
+        
+        
+        '''
+        aud1 = columnplots[2][0]
+        aud2 = columnplots[2][len(columnplots[2])-1]
+        fillcolors = []
+        for i in columnplots[1]:
+            if i>=aud1 and i<=aud2:
+                
+                fillcolors.append('rgb(0,0,0)')
+                
+            else:
+                fillcolors.append('rgba(54, 162, 235, 1)')
+        fillcolors[0] = 'rgba(54, 162, 235, 1)'
+        '''
+
         
 
 
 
-            
         data = {
             'keyaud' : audplots[0],
             'keysr' : columnplots[0],
@@ -562,7 +647,9 @@ class Defresults(APIView):
             'search2sr' : columnplots[3],
             'search3aud' : audplots[4],
             'search3sr' : columnplots[4],
-            'rmse': new_list
+            'rmse': new_list,
+            'lentime': lentime
+            
                 
         
         
@@ -823,6 +910,7 @@ def cost_function(featureList=['melspec', 'chroma', 'zerocross'], coefficientVal
         plt.title('Max Error Graph')
         plt.plot(avg_df['max_error'], color='darkgoldenrod');
         plt.show()
+    print(avg_df.head(5))
     
     return avg_df
 
@@ -901,6 +989,7 @@ def write_audio_output(keyword, potential_df = pd.DataFrame(), target_length = 1
     output = Output_audios()
     out_file_list = []
     output.keyword = word
+    
     rmseval = list(potential_df.sort_index()['rmse'])
     '''
     rmse_list = list(potential_df.sort_index()['rmse'])
@@ -918,6 +1007,8 @@ def write_audio_output(keyword, potential_df = pd.DataFrame(), target_length = 1
     start_point = potential_df['sample_loc'].iloc[0]
     end_point = start_point + target_length
     audio_subset = test_audio[start_point: end_point]
+    output.start_time = start_point
+    output.end_time = end_point
 
     current_time = datetime.datetime.now()
     timestr = str(current_time.year) + "_" + str(current_time.month) + "_" + str(current_time.day) + "_" + str(current_time.hour) + "_" + str(current_time.minute) + "_" + str(current_time.second)
@@ -1004,11 +1095,13 @@ def search_function(malspec, chroma, zerocross, sdf, keyword, keyword_file1= 'ab
     
     target_audio, target_sr = librosa.load(keyword_file1)
     
+    
     target_audio, index = librosa.effects.trim(target_audio, top_db=sdf)
     
     test_filename = large_audio_file
     
     test_audio, test_sr = librosa.load(test_filename, sr= target_sr)
+    testfile = test_audio.tolist()
     
     result = cost_function(featureList=['malspec', 'chroma', 'zerocross'],
                        coefficientValues= [malspec, chroma , zerocross], 
@@ -1030,6 +1123,10 @@ def search_function(malspec, chroma, zerocross, sdf, keyword, keyword_file1= 'ab
     runtime = round((stop_time_seconds - start_time_seconds),2)
     obj = Output_audios.objects.last()
     obj.runtime = runtime
+    obj.test_audio = testfile
+    #obj.start_time = potential_df['sample_loc'].iloc[0]
+    
+    #obj.end_time = potential_df['sample_loc'].iloc[0] + len(target_audio)
     obj.save()
 
     plotobj = Plotter.objects.last()

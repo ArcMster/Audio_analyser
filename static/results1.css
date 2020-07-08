@@ -51,6 +51,11 @@ body{
     width: 100%;
     padding-right: 1%;
 }
+#largeB{
+    text-align: center;
+    width: 100%;
+    padding-left: 1%;
+}
 #aud2{
     text-align: center;
     width: 100%;
